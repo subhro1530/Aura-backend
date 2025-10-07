@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+npm-debug.log*
+yarn-error.log
+dist/
+coverage/
+.tmp/
+.DS_Store
+*.sqlite
+*.log
+.idea/
+.vscode/
