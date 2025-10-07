@@ -4,6 +4,8 @@ const morgan = require("morgan");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const moodRoutes = require("./routes/mood.routes");
+const postsRoutes = require("./routes/posts.routes");
+const searchRoutes = require("./routes/search.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -21,11 +23,9 @@ app.get("/health", (_req, res) =>
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/mood", moodRoutes); // gated per-user by moodEnabled middleware
+app.use("/posts", postsRoutes);
+app.use("/search", searchRoutes);
 
-app.use(notFound);
-app.use(errorHandler);
-
-module.exports = app;
 app.use(notFound);
 app.use(errorHandler);
 

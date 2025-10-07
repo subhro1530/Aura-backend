@@ -10,7 +10,7 @@ function errorHandler(err, _req, res, _next) {
   if (err.code === "42P01") {
     return res.status(500).json({
       error:
-        'Database schema not initialized. Run: npm run migrate && psql "$DATABASE_URL" -f src/db/migrations/002_add_mood_enabled_pref.sql',
+        "A required table is missing (relation does not exist). Restart server to trigger AUTO_MIGRATE or run migrations manually. Ensure AUTO_MIGRATE=1, then restart.",
     });
   }
   if (err.code === "22P02") {

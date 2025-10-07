@@ -81,6 +81,23 @@ GET /mood/trends (placeholder)
 GET /mood/summary/weekly (placeholder)
 (Feature access controlled by user preference mood_enabled, not an env flag.)
 
+## Module 3 (Posts, Feed & Interactions)
+
+POST /posts/create
+GET /posts/:id
+GET /posts/user/:userId (userId or 'me')
+GET /posts/feed
+GET /posts/trending
+POST /posts/like/:id (toggle)
+POST /posts/comment/:id
+GET /posts/comments/:id
+DELETE /posts/delete/:id
+GET /posts/vibe-match (preview vibe scores for current feed)
+POST /posts/share/:id { target_type: story|circle, circle_id? }
+POST /posts/save/:id (toggle)
+GET /posts/saved
+POST /posts/report/:id
+
 ## Email Sending
 
 If RESEND_API_KEY is set, emails are sent via Resend (free dev tier). Fallback:
@@ -100,6 +117,27 @@ The earlier reference to ENABLE_MOOD env flag is obsolete (feature is preference
 
 Run after pulling:
 psql "$DATABASE_URL" -f src/db/migrations/002_add_mood_enabled_pref.sql
+
+Add migrations 003_posts.sql & 004_search_indexes.sql for posts + search indexes (auto-applied if missing).
+
+## Migration Tracking
+
+A schema_migrations table now records applied migration filenames. On each startup (if AUTO_MIGRATE=1) the server applies any new files in src/db/migrations/ in order:
+001_init.sql → 002_add_mood_enabled_pref.sql → 003_posts.sql → 004_search_indexes.sql
+
+If you add a new migration, just drop the file in the directory and restart the server.
+
+If you see a 42P01 error during an API call (e.g. posts table missing) but users table exists:
+
+1. Confirm the migration file (e.g. 003_posts.sql) is present.
+2. Restart the server (AUTO_MIGRATE=1).
+3. Check schema_migrations for the filename:
+   SELECT \* FROM schema_migrations ORDER BY id;
+4. If not listed, inspect logs for "Migration statement failed".
+
+Manual apply example:
+psql "$DATABASE_URL" -f src/db/migrations/003_posts.sql
+INSERT INTO schema_migrations (filename) VALUES ('003_posts.sql');
 
 ## Security Notes
 
@@ -201,7 +239,92 @@ curl -X GET $BASE/mood/trends -H "Authorization: Bearer $TOKEN"
 Weekly summary (placeholder):
 curl -X GET $BASE/mood/summary/weekly -H "Authorization: Bearer $TOKEN"
 
-### 4. Typical Flow Quick Script (bash)
+### 4. Posts, Feed & Interactions (Module 3)
+
+Create post:
+curl -X POST $BASE/posts/create -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"caption":"First post!","emotion":"happy","tags":["intro","vibe"]}'
+
+Feed:
+curl -X GET $BASE/posts/feed -H "Authorization: Bearer $TOKEN"
+
+Like toggle:
+curl -X POST $BASE/posts/like/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+Comment:
+curl -X POST $BASE/posts/comment/<POST_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"Nice!","emotion":"excited"}'
+
+List comments:
+curl -X GET $BASE/posts/comments/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+Save toggle:
+curl -X POST $BASE/posts/save/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+Saved:
+curl -X GET $BASE/posts/saved -H "Authorization: Bearer $TOKEN"
+
+Trending:
+curl -X GET $BASE/posts/trending -H "Authorization: Bearer $TOKEN"
+
+Vibe match preview:
+curl -X GET $BASE/posts/vibe-match -H "Authorization: Bearer $TOKEN"
+
+Delete post:
+curl -X DELETE $BASE/posts/delete/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+Report post:
+curl -X POST $BASE/posts/report/<POST_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"reason":"spam"}'
+
+Share:
+curl -X POST $BASE/posts/share/<POST_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"target_type":"story"}'
+
+## Module X (Search)
+
+Unified endpoint auto-detects:
+
+- @prefix → user search
+- #prefix → tag search
+- plain text → post search
+
+GET /search?q=@alice
+GET /search?q=#calm
+GET /search?q=morning
+
+Explicit:
+GET /search/users?q=alice
+GET /search/posts?q=energy
+GET /search/suggest (mixed suggestions)
+GET /search/suggest?q=a (prefix user suggestions)
+
+### Search Testing (curl)
+
+User search (@ prefix):
+curl -X GET "$BASE/search?q=@user1" -H "Authorization: Bearer $TOKEN"
+
+Tag search (# prefix):
+curl -X GET "$BASE/search?q=#intro" -H "Authorization: Bearer $TOKEN"
+
+Post text search:
+curl -X GET "$BASE/search?q=happy%20day" -H "Authorization: Bearer $TOKEN"
+
+Explicit user search:
+curl -X GET "$BASE/search/users?q=user" -H "Authorization: Bearer $TOKEN"
+
+Explicit post search:
+curl -X GET "$BASE/search/posts?q=calm" -H "Authorization: Bearer $TOKEN"
+
+Tag (explicit via unified already):
+curl -X GET "$BASE/search?q=#vibe" -H "Authorization: Bearer $TOKEN"
+
+Suggestions (no query):
+curl -X GET "$BASE/search/suggest" -H "Authorization: Bearer $TOKEN"
+
+Suggestions (short query):
+curl -X GET "$BASE/search/suggest?q=u" -H "Authorization: Bearer $TOKEN"
+
+Pagination example:
+curl -X GET "$BASE/search/posts?q=energy&limit=30&offset=30" -H "Authorization: Bearer $TOKEN"
+
+### 5. Typical Flow Quick Script (bash)
 
 Register → Verify (copy token) → Login → Enable mood → Analyze:
 
@@ -232,6 +355,28 @@ If you still see "Users table missing":
 3. Run manually:
    npm run migrate
    psql "$DATABASE_URL" -f src/db/migrations/002_add_mood_enabled_pref.sql
+
+### Migration / Schema Troubleshooting
+
+If you see:
+{"error":"Database schema not initialized..."
+Likely initial migration failed. Common causes:
+
+1. pgcrypto extension privilege denied (Neon role). Fix:
+   - Enable pgcrypto in Neon dashboard OR remove DEFAULT gen_random_uuid() and generate UUIDs in app.
+2. Network interruption during auto-migrate.
+3. AUTO_MIGRATE=0 and migrations not run manually.
+
+The server now:
+
+- Runs each migration statement individually.
+- Skips (logs warning) if CREATE EXTENSION fails, continuing with table creation.
+
+To re-run from scratch (destructive):
+DROP TABLE IF EXISTS users CASCADE;
+Then restart server (auto-migrate) or run migrations manually.
+
+Check logs for lines: "Migration statement failed" or "Extension statement skipped".
 
 ## License
 

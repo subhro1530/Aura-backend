@@ -1,3 +1,5 @@
+-- pgcrypto is used for gen_random_uuid(). If your Neon role lacks permission this line will fail but
+-- the server’s migration runner will skip it and you must supply UUIDs from application code inserts.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Users & auth core
