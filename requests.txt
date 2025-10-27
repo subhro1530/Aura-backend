@@ -1,0 +1,1057 @@
+===============================
+AURA API Sample Requests / Responses
+Base URL assumption:
+BASE=http://localhost:4000
+(All protected routes require: -H "Authorization: Bearer $TOKEN")
+===============================
+
+SECTION 1: AUTH
+----------------
+
+1. Register
+curl -X POST $BASE/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo1@example.com","username":"demo1","password":"Passw0rd!"}'
+
+Response (201):
+{
+  "user": {
+    "id": "c0f9e9b2-...",
+    "email": "demo1@example.com",
+    "username": "demo1",
+    "created_at": "2025-10-07T09:00:11.000Z"
+  },
+  "message": "Registered. Check email for verification token."
+}
+
+2. Verify Email
+curl -X POST $BASE/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{"token":"<VERIFICATION_TOKEN>"}'
+
+Response:
+{ "success": true }
+
+3. Login
+curl -X POST $BASE/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo1@example.com","password":"Passw0rd!"}'
+
+Response:
+{
+  "token": "<JWT_TOKEN>",
+  "user": { "id": "c0f9e9b2-...", "email": "demo1@example.com" }
+}
+
+4. Forgot Password
+curl -X POST $BASE/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo1@example.com"}'
+
+Response (always):
+{ "success": true }
+
+5. Reset Password
+curl -X PUT $BASE/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"token":"<RESET_TOKEN>","newPassword":"NewPassw0rd!"}'
+
+Response:
+{ "success": true }
+
+6. Logout
+curl -X POST $BASE/auth/logout -H "Authorization: Bearer $TOKEN"
+
+Response:
+{ "success": true }
+
+7. Social Login (placeholder)
+curl -X POST $BASE/auth/social-login \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"google","providerId":"abc123","email":"guser@example.com","username":"guser"}'
+
+Response:
+{
+  "token":"<JWT>",
+  "user":{ "id":"...","email":"guser@example.com" }
+}
+
+
+SECTION 2: USER
+----------------
+
+1. Get Own Profile
+curl -X GET $BASE/user/profile/me -H "Authorization: Bearer $TOKEN"
+
+2. Get Profile by ID
+curl -X GET $BASE/user/profile/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+3. Get Profile by Username
+curl -X GET $BASE/user/profile/demo1 -H "Authorization: Bearer $TOKEN"
+
+Sample Response:
+{
+  "profile": {
+    "id":"c0f9e9b2-...",
+    "email":"demo1@example.com",
+    "username":"demo1",
+    "bio":"",
+    "profile_pic":null,
+    "mood_preference":null,
+    "verified_at":"2025-10-07T09:05:21.000Z",
+    "created_at":"2025-10-07T09:00:11.000Z"
+  }
+}
+
+4. Update Profile
+curl -X PUT $BASE/user/profile/update \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"bio":"Hello Aura","mood_preference":"calm"}'
+
+Response:
+{
+  "profile": {
+    "id":"c0f9e9b2-...",
+    "email":"demo1@example.com",
+    "username":"demo1",
+    "bio":"Hello Aura",
+    "profile_pic":null,
+    "mood_preference":"calm"
+  }
+}
+
+5. Update Preferences (enable mood)
+curl -X PUT $BASE/user/preferences \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"privacy_level":"public","mood_enabled":true}'
+
+Response:
+{
+  "user_id":"c0f9e9b2-...",
+  "privacy_level":"public",
+  "notifications":{"email":true,"push":true},
+  "mood_enabled":true,
+  "updated_at":"2025-10-07T09:15:00.000Z"
+}
+
+6. Block User
+curl -X POST $BASE/user/block/<OTHER_USER_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "success": true }
+
+7. Report User
+curl -X POST $BASE/user/report/<OTHER_USER_ID> \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"spam"}'
+Response: { "success": true }
+
+8. Delete (Soft)
+curl -X DELETE $BASE/user/delete -H "Authorization: Bearer $TOKEN"
+Response: { "success": true }
+
+
+SECTION 3: POSTS / FEED / INTERACTIONS
+--------------------------------------
+
+1. Create Post
+curl -X POST $BASE/posts/create \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"caption":"Morning energy!","emotion":"happy","tags":["morning","vibe"]}'
+
+Response (201):
+{
+  "post": {
+    "id":"6e0e5a4d-...",
+    "user_id":"c0f9e9b2-...",
+    "caption":"Morning energy!",
+    "media_url":null,
+    "media_type":null,
+    "emotion":"happy",
+    "tags":["morning","vibe"],
+    "like_count":0,
+    "comment_count":0,
+    "share_count":0,
+    "saved_count":0,
+    "created_at":"2025-10-07T09:20:15.000Z",
+    "updated_at":"2025-10-07T09:20:15.000Z",
+    "deleted_at":null
+  }
+}
+
+2. Get Post
+curl -X GET $BASE/posts/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+Response:
+{
+  "post":{
+    "id":"6e0e5a4d-...",
+    "user_id":"c0f9e9b2-...",
+    "caption":"Morning energy!",
+    "emotion":"happy",
+    "tags":["morning","vibe"],
+    "like_count":0,
+    "comment_count":0,
+    "share_count":0,
+    "saved_count":0,
+    "liked":false,
+    "saved":false,
+    "created_at":"2025-10-07T09:20:15.000Z"
+  }
+}
+
+3. User Posts
+curl -X GET $BASE/posts/user/me -H "Authorization: Bearer $TOKEN"
+
+4. Feed
+curl -X GET $BASE/posts/feed -H "Authorization: Bearer $TOKEN"
+
+Response (excerpt):
+{
+  "posts":[
+    {
+      "id":"6e0e5a4d-...",
+      "caption":"Morning energy!",
+      "emotion":"happy",
+      "vibe_score":95,
+      "created_at":"2025-10-07T09:20:15.000Z"
+    }
+  ]
+}
+
+5. Trending
+curl -X GET $BASE/posts/trending -H "Authorization: Bearer $TOKEN"
+
+6. Like Toggle
+curl -X POST $BASE/posts/like/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response (first): { "liked": true }
+Response (second): { "liked": false }
+
+7. Comment
+curl -X POST $BASE/posts/comment/<POST_ID> \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Nice vibe!","emotion":"excited"}'
+
+Response (201):
+{
+  "comment": {
+    "id":"41d6c1e3-...",
+    "post_id":"6e0e5a4d-...",
+    "user_id":"c0f9e9b2-...",
+    "content":"Nice vibe!",
+    "emotion":"excited",
+    "created_at":"2025-10-07T09:22:10.000Z",
+    "deleted_at":null
+  }
+}
+
+8. List Comments
+curl -X GET $BASE/posts/comments/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+Response:
+{
+  "comments":[ { "id":"41d6c1e3-...","content":"Nice vibe!","emotion":"excited" } ]
+}
+
+9. Save Toggle
+curl -X POST $BASE/posts/save/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "saved": true }
+
+10. Saved Posts
+curl -X GET $BASE/posts/saved -H "Authorization: Bearer $TOKEN"
+
+11. Share
+curl -X POST $BASE/posts/share/<POST_ID> \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"target_type":"story"}'
+Response: { "shared": true, "target_type":"story" }
+
+12. Vibe Match Preview
+curl -X GET $BASE/posts/vibe-match -H "Authorization: Bearer $TOKEN"
+Response:
+{
+  "scores":[
+    { "post_id":"6e0e5a4d-...","vibe_score":95 }
+  ]
+}
+
+13. Report Post
+curl -X POST $BASE/posts/report/<POST_ID> \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"spam"}'
+Response: { "reported": true }
+
+14. Delete Post
+curl -X DELETE $BASE/posts/delete/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "deleted": true }
+
+
+SECTION 4: MOOD (Requires mood_enabled=true)
+-------------------------------------------
+(Enable via /user/preferences first)
+
+1. Analyze Text
+curl -X POST $BASE/mood/analyze-text \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Feeling super excited for the launch"}'
+
+Response:
+{ "userId":"c0f9e9b2-...","mood":"excited","raw":{ ... } }
+
+2. Analyze Image (placeholder)
+curl -X POST $BASE/mood/analyze-image \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"imageBase64":"dGVzdA=="}'
+
+Response:
+{ "userId":"c0f9e9b2-...","mood":"neutral","confidence":0.4,"note":"Image mood analysis not implemented yet" }
+
+
+SECTION 5: SEARCH
+-----------------
+
+1. Unified User (@ prefix)
+curl -X GET "$BASE/search?q=@demo" -H "Authorization: Bearer $TOKEN"
+
+Response:
+{ "type":"users","query":"@demo","results":[ { "id":"...","username":"demo1","match_score":98 } ] }
+
+2. Unified Tag (# prefix)
+curl -X GET "$BASE/search?q=#morning" -H "Authorization: Bearer $TOKEN"
+
+Response:
+{ "type":"posts","mode":"tag","query":"#morning","results":[ { "id":"6e0e5a4d-...","caption":"Morning energy!" } ] }
+
+3. Unified Text (posts)
+curl -X GET "$BASE/search?q=energy" -H "Authorization: Bearer $TOKEN"
+
+4. Explicit Users
+curl -X GET "$BASE/search/users?q=demo" -H "Authorization: Bearer $TOKEN"
+
+5. Explicit Posts
+curl -X GET "$BASE/search/posts?q=happy" -H "Authorization: Bearer $TOKEN"
+
+6. Suggest (no q)
+curl -X GET "$BASE/search/suggest" -H "Authorization: Bearer $TOKEN"
+
+7. Suggest (short prefix)
+curl -X GET "$BASE/search/suggest?q=d" -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 6: ERROR EXAMPLES
+-------------------------
+
+Unauthorized (missing token):
+curl -X GET $BASE/posts/feed
+Response: { "error":"Unauthorized" }
+
+Invalid profile (bad UUID format):
+curl -X GET $BASE/user/profile/not-a-uuid -H "Authorization: Bearer $TOKEN"
+If treated as username and not found:
+Response: { "error":"User not found" }
+
+Missing field example (comment):
+curl -X POST $BASE/posts/comment/<POST_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}'
+Response: { "error":"content required" }
+
+
+SECTION 7: QUICK FLOW
+---------------------
+
+# Register + verify (copy token from email/logs) + login + enable mood + create post + feed + search
+curl -X POST $BASE/auth/register -H "Content-Type: application/json" -d '{"email":"flow@example.com","username":"flowuser","password":"Passw0rd!"}'
+# verify with token...
+curl -X POST $BASE/auth/login -H "Content-Type: application/json" -d '{"email":"flow@example.com","password":"Passw0rd!"}'
+TOKEN=<JWT>
+curl -X PUT $BASE/user/preferences -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"mood_enabled":true}'
+curl -X POST $BASE/mood/analyze-text -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"text":"Feeling calm today"}'
+curl -X POST $BASE/posts/create -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"caption":"Calm morning","emotion":"calm","tags":["morning","calm"]}'
+curl -X GET $BASE/posts/feed -H "Authorization: Bearer $TOKEN"
+curl -X GET "$BASE/search?q=#calm" -H "Authorization: Bearer $TOKEN"
+
+===============================
+End of requests.txt
+===============================
+
+SECTION 8: SOCIAL (Followers)
+-----------------------------
+
+Follow:
+curl -X POST $BASE/social/follow/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Unfollow:
+curl -X POST $BASE/social/unfollow/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+Followers (of me):
+curl -X GET $BASE/social/followers/me -H "Authorization: Bearer $TOKEN"
+Following (of user):
+curl -X GET $BASE/social/following/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+Mutuals with user:
+curl -X GET $BASE/social/mutual/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+Follow status:
+curl -X GET $BASE/social/follow-status/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "i_follow": true, "follows_me": false }
+
+Suggestions:
+curl -X GET $BASE/social/suggestions -H "Authorization: Bearer $TOKEN"
+
+SECTION 9: DIRECT MESSAGES (DM)
+-------------------------------
+
+Create thread:
+curl -X POST $BASE/dm/thread -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"participants":["<OTHER_USER_ID>"],"title":"Chat"}'
+
+List my threads:
+curl -X GET $BASE/dm/threads -H "Authorization: Bearer $TOKEN"
+
+Send message:
+curl -X POST $BASE/dm/threads/<THREAD_ID>/message -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"Hello!"}'
+
+List messages:
+curl -X GET "$BASE/dm/threads/<THREAD_ID>/messages?limit=50" -H "Authorization: Bearer $TOKEN"
+
+Mark read:
+curl -X POST $BASE/dm/threads/<THREAD_ID>/read -H "Authorization: Bearer $TOKEN"
+
+Typing (placeholder):
+curl -X POST $BASE/dm/threads/<THREAD_ID>/typing -H "Authorization: Bearer $TOKEN"
+
+Add member:
+curl -X POST $BASE/dm/threads/<THREAD_ID>/add -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"userId":"<USER_ID>"}'
+
+Remove member:
+curl -X POST $BASE/dm/threads/<THREAD_ID>/remove/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+SECTION 10: PROFILE CHANGES
+---------------------------
+
+Change username:
+curl -X PUT $BASE/profile/username -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"username":"new_name"}'
+
+Change email (re-verify required):
+curl -X PUT $BASE/profile/email -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"email":"new@example.com"}'
+
+Change profile photo (URL or storage key):
+curl -X PUT $BASE/profile/photo -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"profile_pic":"https://cdn/a.jpg"}'
+
+
+SECTION 11: PROFILE (Grid, Tagged, Reels-like)
+----------------------------------------------
+
+Profile posts grid (use existing by-user endpoint; paginate for grid):
+curl -X GET "$BASE/posts/user/<USER_ID>?limit=12&offset=0" -H "Authorization: Bearer $TOKEN"
+
+Response (grid-friendly excerpt):
+{
+  "posts":[
+    { "id":"...", "media_url":null, "media_type":null, "caption":"...", "like_count":3, "comment_count":1, "created_at":"..." }
+    // 12 items...
+  ]
+}
+
+Tagged posts (planned):
+curl -X GET "$BASE/profile/tagged/<USER_ID>?limit=12&offset=0" -H "Authorization: Bearer $TOKEN"
+Response (planned):
+{ "posts":[ /* posts where user was tagged */ ] }
+
+Reels (planned; treat as posts with media_type=video):
+curl -X GET "$BASE/profile/reels/<USER_ID>?limit=12&offset=0" -H "Authorization: Bearer $TOKEN"
+Response (planned):
+{ "posts":[ /* video posts */ ] }
+
+
+SECTION 12: STORIES & HIGHLIGHTS (Planned)
+------------------------------------------
+
+Create a story (image/video URL or storage key):
+curl -X POST $BASE/stories/create -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"media_url":"https://cdn/story.jpg","caption":"mood"}'
+
+My story ring (list my active stories):
+curl -X GET $BASE/stories/me -H "Authorization: Bearer $TOKEN"
+
+Friends stories (chronological rings):
+curl -X GET $BASE/stories/feed -H "Authorization: Bearer $TOKEN"
+
+Viewers for my story:
+curl -X GET $BASE/stories/<STORY_ID>/viewers -H "Authorization: Bearer $TOKEN"
+
+Add story to highlight:
+curl -X POST $BASE/stories/<STORY_ID>/highlight -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"title":"Trips"}'
+
+List highlights on profile:
+curl -X GET $BASE/highlights/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 13: COMMENTS MANAGEMENT
+-------------------------------
+
+Delete my comment:
+curl -X DELETE $BASE/posts/comments/<COMMENT_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "deleted": true }
+
+Like a comment:
+curl -X POST $BASE/posts/comments/<COMMENT_ID>/like -H "Authorization: Bearer $TOKEN"
+Response: { "liked": true }
+
+Reply to a comment (threaded; planned):
+curl -X POST $BASE/posts/comments/<COMMENT_ID>/reply -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"reply text"}'
+Response (planned): { "reply": { "id":"...", "parent_id":"<COMMENT_ID>", "content":"reply text" } }
+
+
+SECTION 14: LIKES & VIEWERS
+---------------------------
+
+List users who liked a post:
+curl -X GET $BASE/posts/<POST_ID>/likes -H "Authorization: Bearer $TOKEN"
+Response (planned): { "users":[ { "id":"...","username":"..." } ] }
+
+List users who liked a comment:
+curl -X GET $BASE/posts/comments/<COMMENT_ID>/likes -H "Authorization: Bearer $TOKEN"
+Response (planned): { "users":[ /* ... */ ] }
+
+
+SECTION 15: SAVED COLLECTIONS (Planned)
+---------------------------------------
+
+Create a collection:
+curl -X POST $BASE/collections -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Inspo"}'
+Response: { "id":"...", "name":"Inspo" }
+
+Add post to collection:
+curl -X POST $BASE/collections/<COLLECTION_ID>/add/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "added": true }
+
+List my collections:
+curl -X GET $BASE/collections -H "Authorization: Bearer $TOKEN"
+
+View a collection:
+curl -X GET $BASE/collections/<COLLECTION_ID> -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 16: PIN & ARCHIVE (Planned)
+-----------------------------------
+
+Pin a post (profile top; up to 3):
+curl -X POST $BASE/posts/pin/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "pinned": true }
+
+Unpin a post:
+curl -X POST $BASE/posts/unpin/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "pinned": false }
+
+Archive a post (hide from profile without delete):
+curl -X POST $BASE/posts/archive/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "archived": true }
+
+Unarchive:
+curl -X POST $BASE/posts/unarchive/<POST_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "archived": false }
+
+List archived:
+curl -X GET $BASE/posts/archived -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 17: PRIVACY & SAFETY
+----------------------------
+
+Make account private:
+curl -X PUT $BASE/user/preferences -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"privacy_level":"private"}'
+
+Follow requests (incoming; for private accounts; planned):
+curl -X GET $BASE/social/requests -H "Authorization: Bearer $TOKEN"
+Approve:
+curl -X POST $BASE/social/requests/<USER_ID>/approve -H "Authorization: Bearer $TOKEN"
+Decline:
+curl -X POST $BASE/social/requests/<USER_ID>/decline -H "Authorization: Bearer $TOKEN"
+
+Mute a user (hide posts/stories; planned):
+curl -X POST $BASE/social/mute/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+Restrict a user (limit interactions; planned):
+curl -X POST $BASE/social/restrict/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+Hide like counts on my posts (global pref; planned):
+curl -X PUT $BASE/user/preferences -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"hide_like_counts":true}'
+
+Comment controls (filter; planned):
+curl -X PUT $BASE/user/preferences -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"comment_filter":"followers_only"}'
+
+
+SECTION 18: EXPLORE & REELS (Placeholders)
+------------------------------------------
+
+Explore (personalized discover):
+curl -X GET $BASE/explore -H "Authorization: Bearer $TOKEN"
+Response (planned): { "posts":[ /* trending + recommended */ ] }
+
+Reels feed (vertical videos):
+curl -X GET $BASE/reels -H "Authorization: Bearer $TOKEN"
+Response (planned): { "posts":[ /* videos */ ] }
+
+
+SECTION 19: NOTIFICATIONS (Planned)
+-----------------------------------
+
+Fetch notifications:
+curl -X GET $BASE/notifications -H "Authorization: Bearer $TOKEN"
+
+Mark notification read:
+curl -X POST $BASE/notifications/<NOTIF_ID>/read -H "Authorization: Bearer $TOKEN"
+
+Notification settings:
+curl -X PUT $BASE/user/preferences -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"notifications":{"push":true,"email":true}}'
+
+
+SECTION 20: CIRCLES (Aura micro-communities)
+--------------------------------------------
+
+Create circle:
+curl -X POST $BASE/circles -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Peace Seekers","bio":"Mindful moments","visibility":"public","icon":"🌿"}'
+Response: { "id":"<CIRCLE_ID>","name":"Peace Seekers","members":1,"role":"owner" }
+
+Update circle:
+curl -X PUT $BASE/circles/<CIRCLE_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"bio":"Calm & mindful"}'
+Response: { "updated": true }
+
+Delete circle:
+curl -X DELETE $BASE/circles/<CIRCLE_ID> -H "Authorization: Bearer $TOKEN"
+Response: { "deleted": true }
+
+Invite to circle:
+curl -X POST $BASE/circles/<CIRCLE_ID>/invite -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"userId":"<USER_ID>"}'
+Response: { "invited": true }
+
+Join circle (public or via invite):
+curl -X POST $BASE/circles/<CIRCLE_ID>/join -H "Authorization: Bearer $TOKEN"
+Leave:
+curl -X POST $BASE/circles/<CIRCLE_ID>/leave -H "Authorization: Bearer $TOKEN"
+
+Kick member (admin):
+curl -X POST $BASE/circles/<CIRCLE_ID>/members/<USER_ID>/kick -H "Authorization: Bearer $TOKEN"
+Promote/demote admin:
+curl -X POST $BASE/circles/<CIRCLE_ID>/members/<USER_ID>/role -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"role":"admin"}'
+
+List my circles:
+curl -X GET $BASE/circles/mine -H "Authorization: Bearer $TOKEN"
+Circle details:
+curl -X GET $BASE/circles/<CIRCLE_ID> -H "Authorization: Bearer $TOKEN"
+
+Circle posts (feed):
+curl -X GET "$BASE/circles/<CIRCLE_ID>/posts?limit=20&offset=0" -H "Authorization: Bearer $TOKEN"
+Create circle post:
+curl -X POST $BASE/circles/<CIRCLE_ID>/posts -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"caption":"Breathe in","emotion":"calm","tags":["breath"]}'
+Response: { "id":"<POST_ID>" }
+
+Circle discover:
+curl -X GET "$BASE/circles/discover?topic=calm&limit=20" -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 21: WHISPER MODE (Anonymous-to-circle)
+----------------------------------------------
+
+Create whisper (anon in chosen circle):
+curl -X POST $BASE/whisper -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"circleId":"<CIRCLE_ID>","content":"Having a tough day..."}'
+Response: { "id":"<WHISPER_ID>","anon":true }
+
+Reply to whisper (threaded, anon by default):
+curl -X POST $BASE/whisper/<WHISPER_ID>/reply -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"We’re here for you"}'
+Response: { "id":"<REPLY_ID>" }
+
+Reveal identity to mods (optional):
+curl -X POST $BASE/whisper/<WHISPER_ID>/reveal -H "Authorization: Bearer $TOKEN"
+Response: { "revealed_to_mods": true }
+
+Report whisper:
+curl -X POST $BASE/whisper/<WHISPER_ID>/report -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"reason":"abuse"}'
+Response: { "reported": true }
+
+
+SECTION 22: AURA LEVELS & SNAPSHOTS
+-----------------------------------
+
+Get my aura level:
+curl -X GET $BASE/aura/level -H "Authorization: Bearer $TOKEN"
+Response: { "level": 7, "xp": 1540, "next_level_xp": 1800 }
+
+Leaderboard (circle or global):
+curl -X GET "$BASE/aura/leaderboard?scope=global&limit=20" -H "Authorization: Bearer $TOKEN"
+
+Daily snapshot (current week):
+curl -X GET $BASE/aura/snapshot/daily -H "Authorization: Bearer $TOKEN"
+Weekly share card:
+curl -X GET $BASE/aura/snapshot/weekly/share -H "Authorization: Bearer $TOKEN"
+Response: { "image_url":"https://cdn/cards/weekly_abc.png" }
+
+
+SECTION 23: JOURNALS (Offline Sync)
+-----------------------------------
+
+Push unsynced entries:
+curl -X POST $BASE/journals/sync -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"entries":[{"client_id":"c1","content":"Grateful today","mood":"calm","timestamp":1699999999}]}'
+Response: { "synced":[{"client_id":"c1","server_id":"<JOURNAL_ID>"}] }
+
+List journals:
+curl -X GET "$BASE/journals?limit=50&offset=0" -H "Authorization: Bearer $TOKEN"
+Delete journal:
+curl -X DELETE $BASE/journals/<JOURNAL_ID> -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 24: SAFETY & BLOCKING (Advanced)
+----------------------------------------
+
+Block user (already exists):
+curl -X POST $BASE/user/block/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Unblock:
+curl -X POST $BASE/safety/unblock/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Muted list:
+curl -X GET $BASE/safety/muted -H "Authorization: Bearer $TOKEN"
+Mute/unmute:
+curl -X POST $BASE/safety/mute/<USER_ID> -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/safety/unmute/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Restrict/unrestrict:
+curl -X POST $BASE/safety/restrict/<USER_ID> -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/safety/unrestrict/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Account status:
+curl -X GET $BASE/safety/status -H "Authorization: Bearer $TOKEN"
+Response: { "blocked":[],"muted":[],"restricted":[] }
+
+
+SECTION 25: MESSAGING (Group Chats)
+-----------------------------------
+
+Create group:
+curl -X POST $BASE/chat/groups -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Late Night Hustlers","members":["<USER_ID>","<USER_ID2>"]}'
+Response: { "group_id":"<GROUP_ID>" }
+
+Group info:
+curl -X GET $BASE/chat/groups/<GROUP_ID> -H "Authorization: Bearer $TOKEN"
+Rename / avatar:
+curl -X PUT $BASE/chat/groups/<GROUP_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Hustlers 2.0","avatar":"https://cdn/av.png"}'
+
+Add/remove members:
+curl -X POST $BASE/chat/groups/<GROUP_ID>/add -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"userId":"<USER_ID>"}'
+curl -X POST $BASE/chat/groups/<GROUP_ID>/remove/<USER_ID> -H "Authorization: Bearer $TOKEN"
+
+Send message:
+curl -X POST $BASE/chat/groups/<GROUP_ID>/messages -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"type":"text","content":"yo"}'
+List messages:
+curl -X GET "$BASE/chat/groups/<GROUP_ID>/messages?limit=50&before=" -H "Authorization: Bearer $TOKEN"
+
+Edit / delete message:
+curl -X PUT $BASE/chat/messages/<MESSAGE_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"edited"}'
+curl -X DELETE $BASE/chat/messages/<MESSAGE_ID> -H "Authorization: Bearer $TOKEN"
+
+Typing / read receipts:
+curl -X POST $BASE/chat/groups/<GROUP_ID>/typing -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/chat/groups/<GROUP_ID>/read -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"messageId":"<MESSAGE_ID>"}'
+
+
+SECTION 26: STORIES & HIGHLIGHTS (Complete)
+-------------------------------------------
+
+Upload story:
+curl -X POST $BASE/stories -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"media_url":"https://cdn/story.jpg","caption":"vibe","duration_sec":15}'
+My stories:
+curl -X GET $BASE/stories/mine -H "Authorization: Bearer $TOKEN"
+Friends rings:
+curl -X GET $BASE/stories/feed -H "Authorization: Bearer $TOKEN"
+View a story:
+curl -X POST $BASE/stories/<STORY_ID>/view -H "Authorization: Bearer $TOKEN"
+Viewers:
+curl -X GET $BASE/stories/<STORY_ID>/viewers -H "Authorization: Bearer $TOKEN"
+Delete story:
+curl -X DELETE $BASE/stories/<STORY_ID> -H "Authorization: Bearer $TOKEN"
+
+Highlights:
+curl -X POST $BASE/highlights -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"title":"Trips"}'
+Add/remove story:
+curl -X POST $BASE/highlights/<HIGHLIGHT_ID>/add/<STORY_ID> -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/highlights/<HIGHLIGHT_ID>/remove/<STORY_ID> -H "Authorization: Bearer $TOKEN"
+List highlights:
+curl -X GET $BASE/highlights/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Delete highlight:
+curl -X DELETE $BASE/highlights/<HIGHLIGHT_ID> -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 27: DISCOVER (Explore, creators, circles)
+-------------------------------------------------
+
+Explore feed:
+curl -X GET "$BASE/discover?seed=me&limit=30" -H "Authorization: Bearer $TOKEN"
+Creators:
+curl -X GET "$BASE/discover/creators?topic=calm" -H "Authorization: Bearer $TOKEN"
+Circle suggestions:
+curl -X GET "$BASE/discover/circles?topic=night" -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 28: MODERATION & REPORTS
+---------------------------------
+
+Report post (exists), report comment:
+curl -X POST $BASE/moderation/comments/<COMMENT_ID>/report -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"reason":"harassment"}'
+My reports:
+curl -X GET $BASE/moderation/reports/mine -H "Authorization: Bearer $TOKEN"
+Appeal action:
+curl -X POST $BASE/moderation/appeal -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"target":"post","target_id":"<POST_ID>","reason":"context"}'
+
+
+SECTION 29: DEVICES & SESSIONS
+------------------------------
+
+List sessions:
+curl -X GET $BASE/sessions -H "Authorization: Bearer $TOKEN"
+Revoke a session:
+curl -X POST $BASE/sessions/revoke/<SESSION_ID> -H "Authorization: Bearer $TOKEN"
+Register device token (push):
+curl -X POST $BASE/devices -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"platform":"android","token":"<FCM_TOKEN>"}'
+
+
+SECTION 30: 2FA & SECURITY
+--------------------------
+
+Enable TOTP (QR flow):
+curl -X POST $BASE/2fa/setup -H "Authorization: Bearer $TOKEN"
+Response: { "otpauth_url":"otpauth://totp/..." }
+
+Verify & enable:
+curl -X POST $BASE/2fa/verify -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"code":"123456"}'
+Disable:
+curl -X POST $BASE/2fa/disable -H "Authorization: Bearer $TOKEN"
+
+Login with 2FA (when required):
+curl -X POST $BASE/auth/login-2fa -H "Content-Type: application/json" -d '{"email":"demo1@example.com","password":"Passw0rd!","code":"123456"}'
+
+
+SECTION 31: BILLING (Aura Plus)
+-------------------------------
+
+Create checkout:
+curl -X POST $BASE/billing/checkout -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"plan":"aura_plus_monthly"}'
+Webhook (provider → server):
+POST $BASE/billing/webhook
+
+Subscription status:
+curl -X GET $BASE/billing/status -H "Authorization: Bearer $TOKEN"
+Cancel at period end:
+curl -X POST $BASE/billing/cancel -H "Authorization: Bearer $TOKEN"
+
+
+SECTION 32: UPLOADS (Signed URLs)
+---------------------------------
+
+Create signed upload URL:
+curl -X POST $BASE/upload/sign -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"type":"image/jpeg","path":"posts/2025/10/a.jpg"}'
+Response: { "upload_url":"https://s3/...", "public_url":"https://cdn/..." }
+
+
+SECTION 33: INSIGHTS (Creator / Circle)
+---------------------------------------
+
+My post insights:
+curl -X GET "$BASE/insights/posts?range=7d" -H "Authorization: Bearer $TOKEN"
+Circle insights (admin):
+curl -X GET "$BASE/insights/circle/<CIRCLE_ID>?range=7d" -H "Authorization: Bearer $TOKEN"
+
+-- End of extensions --
+SECTION 34: HASHTAGS & TOPICS
+-----------------------------
+
+Follow a tag:
+curl -X POST $BASE/tags/follow/#calm -H "Authorization: Bearer $TOKEN"
+Unfollow:
+curl -X POST $BASE/tags/unfollow/#calm -H "Authorization: Bearer $TOKEN"
+Tag feed:
+curl -X GET "$BASE/tags/#calm/feed?limit=30&offset=0" -H "Authorization: Bearer $TOKEN"
+Trending tags:
+curl -X GET "$BASE/tags/trending?limit=20" -H "Authorization: Bearer $TOKEN"
+
+SECTION 35: LOCATIONS
+---------------------
+
+Attach location to post (on create):
+curl -X POST $BASE/posts/create -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"caption":"Sunset","emotion":"calm","location":{"name":"Central Park","lat":40.7851,"lng":-73.9683}}'
+Search locations:
+curl -X GET "$BASE/locations/search?q=central%20park" -H "Authorization: Bearer $TOKEN"
+Location feed:
+curl -X GET "$BASE/locations/<LOCATION_ID>/posts?limit=30" -H "Authorization: Bearer $TOKEN"
+Nearby explore:
+curl -X GET "$BASE/locations/nearby?lat=40.7&lng=-73.9&radius_km=5" -H "Authorization: Bearer $TOKEN"
+
+SECTION 36: PROFILE LINKS & USERNAME
+------------------------------------
+
+Check username availability:
+curl -X GET "$BASE/profile/username/check?u=new_name" -H "Authorization: Bearer $TOKEN"
+Link-in-bio (set external links):
+curl -X PUT $BASE/profile/links -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"links":[{"label":"Site","url":"https://me.site"}]}'
+Bio with hashtags/mentions (stored safely):
+curl -X PUT $BASE/profile/bio -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"bio":"Vibes @friend #calm"}'
+
+SECTION 37: VERIFICATION & BADGES
+---------------------------------
+
+Request verification:
+curl -X POST $BASE/verify/request -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"category":"creator","links":["https://press.me"]}'
+Status:
+curl -X GET $BASE/verify/status -H "Authorization: Bearer $TOKEN"
+Cancel request:
+curl -X POST $BASE/verify/cancel -H "Authorization: Bearer $TOKEN"
+
+SECTION 38: ACCESSIBILITY
+-------------------------
+
+Set alt text on post:
+curl -X PUT $BASE/posts/<POST_ID>/alt -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"alt":"Two friends at the beach"}'
+Generate captions (queue):
+curl -X POST $BASE/accessibility/captions -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"postId":"<POST_ID>"}'
+Get generated captions:
+curl -X GET $BASE/accessibility/captions/<POST_ID> -H "Authorization: Bearer $TOKEN"
+
+SECTION 39: SENSITIVITY & CONTENT CONTROLS
+------------------------------------------
+
+Mark sensitive:
+curl -X POST $BASE/posts/<POST_ID>/sensitive -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"sensitive":true}'
+User preference for sensitive media:
+curl -X PUT $BASE/user/preferences -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"sensitive_filter":"blur"}'
+
+SECTION 40: ACCOUNT DATA & GDPR
+-------------------------------
+
+Request data export:
+curl -X POST $BASE/account/export -H "Authorization: Bearer $TOKEN"
+Check export:
+curl -X GET $BASE/account/export/status -H "Authorization: Bearer $TOKEN"
+Download export:
+curl -X GET $BASE/account/export/download -H "Authorization: Bearer $TOKEN"
+Deactivate account:
+curl -X POST $BASE/account/deactivate -H "Authorization: Bearer $TOKEN"
+Reactivate (login required):
+curl -X POST $BASE/account/reactivate -H "Authorization: Bearer $TOKEN"
+Permanent delete (2-step):
+curl -X POST $BASE/account/delete/request -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/account/delete/confirm -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"code":"<CONFIRM_CODE>"}'
+
+SECTION 41: WEBHOOKS (Developer)
+--------------------------------
+
+Subscribe:
+curl -X POST $BASE/webhooks -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"url":"https://hooks.site/aura","events":["post.created","follow.added"]}'
+List:
+curl -X GET $BASE/webhooks -H "Authorization: Bearer $TOKEN"
+Delete:
+curl -X DELETE $BASE/webhooks/<WEBHOOK_ID> -H "Authorization: Bearer $TOKEN"
+Deliveries:
+curl -X GET "$BASE/webhooks/<WEBHOOK_ID>/deliveries?limit=20" -H "Authorization: Bearer $TOKEN"
+
+SECTION 42: CLOSE FRIENDS & FOLLOW REQUESTS
+-------------------------------------------
+
+Manage close friends:
+curl -X POST $BASE/social/close-friends/add/<USER_ID> -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/social/close-friends/remove/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Share story to close friends (on create):
+curl -X POST $BASE/stories -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"media_url":"...","audience":"close_friends"}'
+Follow requests (private accounts):
+curl -X GET $BASE/social/requests -H "Authorization: Bearer $TOKEN"
+Approve / decline:
+curl -X POST $BASE/social/requests/<USER_ID>/approve -H "Authorization: Bearer $TOKEN"
+curl -X POST $BASE/social/requests/<USER_ID>/decline -H "Authorization: Bearer $TOKEN"
+
+SECTION 43: TAGGING PEOPLE IN POSTS
+-----------------------------------
+
+Tag users in post:
+curl -X POST $BASE/posts/<POST_ID>/tags -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"tags":[{"userId":"<UID>","x":0.3,"y":0.4}] }'
+Remove tagged user:
+curl -X DELETE $BASE/posts/<POST_ID>/tags/<USER_ID> -H "Authorization: Bearer $TOKEN"
+My tagged posts:
+curl -X GET "$BASE/profile/tagged/me?limit=20&offset=0" -H "Authorization: Bearer $TOKEN"
+
+SECTION 44: POST EDITING & DRAFTS
+---------------------------------
+
+Edit caption / location:
+curl -X PUT $BASE/posts/<POST_ID> -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"caption":"Updated","location":{"name":"Park"}}'
+Change cover (video):
+curl -X PUT $BASE/posts/<POST_ID>/cover -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"frame_sec":4.5}'
+Create draft:
+curl -X POST $BASE/drafts -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"caption":"Drafting...","tags":["idea"]}'
+List drafts:
+curl -X GET $BASE/drafts -H "Authorization: Bearer $TOKEN"
+Publish draft:
+curl -X POST $BASE/drafts/<DRAFT_ID>/publish -H "Authorization: Bearer $TOKEN"
+Delete draft:
+curl -X DELETE $BASE/drafts/<DRAFT_ID> -H "Authorization: Bearer $TOKEN"
+
+SECTION 45: POLLS & INTERACTIVES (Stories/Posts)
+------------------------------------------------
+
+Create poll (story):
+curl -X POST $BASE/stories -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"media_url":"...","interactive":{"type":"poll","question":"Mood?","options":["Calm","Hype"]}}'
+Vote:
+curl -X POST $BASE/interactives/<INTERACTIVE_ID>/vote -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"option":1}'
+Results:
+curl -X GET $BASE/interactives/<INTERACTIVE_ID>/results -H "Authorization: Bearer $TOKEN"
+
+SECTION 46: LIVE (Placeholder)
+------------------------------
+
+Start live:
+curl -X POST $BASE/live/start -H "Authorization: Bearer $TOKEN"
+End live:
+curl -X POST $BASE/live/<LIVE_ID>/end -H "Authorization: Bearer $TOKEN"
+Join live:
+curl -X POST $BASE/live/<LIVE_ID>/join -H "Authorization: Bearer $TOKEN"
+Live comments:
+curl -X POST $BASE/live/<LIVE_ID>/comment -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"🔥"}'
+
+SECTION 47: FEED CONTROLS & FEEDBACK
+------------------------------------
+
+Hide post:
+curl -X POST $BASE/feed/<POST_ID>/hide -H "Authorization: Bearer $TOKEN"
+Snooze user (30 days):
+curl -X POST $BASE/feed/snooze/<USER_ID> -H "Authorization: Bearer $TOKEN"
+Not interested (signal):
+curl -X POST $BASE/feed/<POST_ID>/feedback -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"reason":"not_interested"}'
+
+SECTION 48: NOTIFICATIONS – ADVANCED
+------------------------------------
+
+Snooze notifications (timeboxed):
+curl -X POST $BASE/notifications/snooze -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"minutes":60}'
+Digest preference:
+curl -X PUT $BASE/notifications/digest -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"enabled":true,"time":"09:00"}'
+
+SECTION 49: DEEP LINKS & SHORT LINKS
+------------------------------------
+
+Create short link for post:
+curl -X POST $BASE/links/shorten -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"type":"post","id":"<POST_ID>"}'
+Response: { "short":"https://aura.to/p/abc123" }
+
+SECTION 50: VERSIONING, HEALTH & PAGINATION
+-------------------------------------------
+
+API version:
+curl -X GET $BASE/version
+Health:
+curl -X GET $BASE/health
+Pagination patterns:
+- limit, offset
+- since_id for forward scroll: ?since_id=<POST_ID>&limit=30
+- until_id for backfill: ?until_id=<POST_ID>&limit=30
+
+Rate limit headers (planned):
+X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After
+
+-- End additions --

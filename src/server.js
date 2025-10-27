@@ -12,6 +12,9 @@ const MIGRATIONS = [
   "002_add_mood_enabled_pref.sql",
   "003_posts.sql",
   "004_search_indexes.sql",
+  "005_social.sql",
+  "006_dm.sql",
+  "007_dm_indexes.sql",
 ];
 
 // Ensure schema_migrations tracking table exists
@@ -130,6 +133,20 @@ async function ensureSchema() {
     });
     process.exit(1);
   }
+
+  // Mount new routes here to avoid touching app.js
+  try {
+    const { auth } = require("./middleware/auth"); // ensure middleware available
+    const socialRoutes = require("./routes/social.routes");
+    const dmRoutes = require("./routes/dm.routes");
+    const profileRoutes = require("./routes/profile.routes");
+    app.use("/social", socialRoutes);
+    app.use("/dm", dmRoutes);
+    app.use("/profile", profileRoutes);
+  } catch (e) {
+    logger.warn("Optional route mounting failed", { error: e.message });
+  }
+
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
     logger.info(`Aura backend running on port ${PORT}`);
